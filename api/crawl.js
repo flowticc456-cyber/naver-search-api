@@ -1,70 +1,50 @@
 const https = require('https');
 
-module.exports = async (req, res) => {
+module.exports = function(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
   
   if (req.method === 'OPTIONS') {
     return res.status(200).end();
   }
   
-  const keyword = req.query.keyword;
-  const target = req.query.target;
-  const debug = req.query.debug;
+  var keyword = req.query.keyword || '';
+  var target = req.query.target || '';
+  var debug = req.query.debug || '';
   
   if (!keyword) {
     return res.status(400).json({ error: 'keyword is required' });
   }
   
-  var url;
+  var url = 'https://search.naver.com/search.naver?where=nexearch&query=' + encodeURIComponent(keyword);
+  
   if (target === 'cafearticle') {
-    url = 'https://search.naver.com/search.naver?where=cafearticle&sm=tab_opt&query=' + encodeURIComponent(keyword);
+    url = 'https://search.naver.com/search.naver?where=cafearticle&query=' + encodeURIComponent(keyword);
   } else if (target === 'blog') {
-    url = 'https://search.naver.com/search.naver?where=blog&sm=tab_opt&query=' + encodeURIComponent(keyword);
-  } else {
-    url = 'https://search.naver.com/search.naver?where=nexearch&query=' + encodeURIComponent(keyword);
+    url = 'https://search.naver.com/search.naver?where=blog&query=' + encodeURIComponent(keyword);
   }
   
   https.get(url, {
-    headers: {
-      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-    }
+    headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' }
   }, function(response) {
     var data = '';
     response.on('data', function(chunk) { data += chunk; });
     response.on('end', function() {
+      
       if (debug === '1') {
-        res.status(200).send(data);
-        return;
+        return res.status(200).send(data);
       }
       
       var results = [];
-      var patterns = [
-        /class="title_link"[^>]*>([^<]+)/gi,
-        /class="link_tit"[^>]*>([^<]+)/gi,
-        /class="total_tit"[^>]*>([^<]+)/gi,
-        /class="api_txt_lines total_tit"[^>]*>([^<]+)/gi,
-        /class="sub_tit"[^>]*>([^<]+)/gi,
-        /class="tit"[^>]*>([^<]+)/gi,
-        /<a[^>]*class="[^"]*tit[^"]*"[^>]*>([^<]+)/gi
-      ];
+      var match;
       
-      for (var i = 0; i < patterns.length; i++) {
-        var regex = patterns[i];
-        var match;
-        while ((match = regex.exec(data)) !== null) {
-          var title = match[1].trim();
-          title = title.replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>');
-          var exists = false;
-          for (var j = 0; j < results.length; j++) {
-            if (results[j].title === title) { exists = true; break; }
-          }
-          if (title.length > 5 && !exists) {
-            results.push({ rank: results.length + 1, title: title });
-          }
-          if (results.length >= 50) break;
-        }
-        if (results.length >= 50) break;
+      var regex1 = /class="total_tit"[^>]*>([^<]+)/g;
+      while ((match = regex1.exec(data)) !== null && results.length < 50) {
+        results.push({ rank: results.length + 1, title: match[1].trim() });
+      }
+      
+      var regex2 = /class="link_tit"[^>]*>([^<]+)/g;
+      while ((match = regex2.exec(data)) !== null && results.length < 50) {
+        results.push({ rank: results.length + 1, title: match[1].trim() });
       }
       
       res.status(200).json({
@@ -74,8 +54,12 @@ module.exports = async (req, res) => {
         items: results
       });
     });
-  }).on('error', function(err) {
-    res.status(500).json({ error: err.message });
+  }).on('error', function(e) {
+    res.status(500).json({ error: e.message });
   });
 };
+```
 
+수정 후 테스트:
+```
+https://naver-search-api-orcin.vercel.app/api/crawl?keyword=광주선불폰
