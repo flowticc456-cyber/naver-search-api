@@ -39,12 +39,30 @@ module.exports = async (req, res) => {
       }
       
       var results = [];
-      var regex = /class="title_link"[^>]*>([^<]+)</gi;
-      var match;
-      while ((match = regex.exec(data)) !== null) {
-        var title = match[1].trim();
-        if (title.length > 5) {
-          results.push({ rank: results.length + 1, title: title });
+      var patterns = [
+        /class="title_link"[^>]*>([^<]+)/gi,
+        /class="link_tit"[^>]*>([^<]+)/gi,
+        /class="total_tit"[^>]*>([^<]+)/gi,
+        /class="api_txt_lines total_tit"[^>]*>([^<]+)/gi,
+        /class="sub_tit"[^>]*>([^<]+)/gi,
+        /class="tit"[^>]*>([^<]+)/gi,
+        /<a[^>]*class="[^"]*tit[^"]*"[^>]*>([^<]+)/gi
+      ];
+      
+      for (var i = 0; i < patterns.length; i++) {
+        var regex = patterns[i];
+        var match;
+        while ((match = regex.exec(data)) !== null) {
+          var title = match[1].trim();
+          title = title.replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>');
+          var exists = false;
+          for (var j = 0; j < results.length; j++) {
+            if (results[j].title === title) { exists = true; break; }
+          }
+          if (title.length > 5 && !exists) {
+            results.push({ rank: results.length + 1, title: title });
+          }
+          if (results.length >= 50) break;
         }
         if (results.length >= 50) break;
       }
@@ -60,3 +78,8 @@ module.exports = async (req, res) => {
     res.status(500).json({ error: err.message });
   });
 };
+```
+
+수정 후 테스트:
+```
+https://naver-search-api-orcin.vercel.app/api/crawl?keyword=광주선불폰
