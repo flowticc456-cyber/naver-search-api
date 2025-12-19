@@ -16,19 +16,19 @@ module.exports = async (req, res) => {
   
   try {
     let url;
-    if (target === 'webkr') {
-      url = `https://search.naver.com/search.naver?where=view&query=${encodeURIComponent(keyword)}`;
-    } else if (target === 'cafearticle') {
-      url = `https://search.naver.com/search.naver?where=article&query=${encodeURIComponent(keyword)}`;
+    if (target === 'cafearticle') {
+      // 카페 탭
+      url = `https://search.naver.com/search.naver?ssc=tab.cafe.all&query=${encodeURIComponent(keyword)}`;
     } else if (target === 'blog') {
-      url = `https://search.naver.com/search.naver?where=blog&query=${encodeURIComponent(keyword)}`;
+      // 블로그 탭
+      url = `https://search.naver.com/search.naver?ssc=tab.blog.all&query=${encodeURIComponent(keyword)}`;
     } else {
-      url = `https://search.naver.com/search.naver?where=view&query=${encodeURIComponent(keyword)}`;
+      // 통합검색 (VIEW)
+      url = `https://search.naver.com/search.naver?ssc=tab.view.all&query=${encodeURIComponent(keyword)}`;
     }
     
     const html = await fetchPage(url);
     
-    // 디버그 모드
     if (debug === '1') {
       return res.status(200).send(html);
     }
@@ -66,13 +66,13 @@ function fetchPage(url) {
 function parseSearchResults(html) {
   const results = [];
   
-  // 네이버 VIEW 탭 제목 패턴들
   const patterns = [
     /class="title_link"[^>]*>([^<]+)</gi,
     /class="api_txt_lines total_tit"[^>]*>([^<]+)</gi,
     /class="total_tit"[^>]*>([^<]+)</gi,
     /title_link[^>]*title="([^"]+)"/gi,
-    /"title":"([^"]{5,100})"/g
+    /"title":"([^"]{5,100})"/g,
+    /class="name_link"[^>]*>([^<]+)</gi
   ];
   
   for (const pattern of patterns) {
@@ -90,3 +90,8 @@ function parseSearchResults(html) {
   
   return results;
 }
+```
+
+수정 후 테스트:
+```
+https://naver-search-api-orcin.vercel.app/api/crawl?keyword=광주선불폰&target=cafearticle&debug=1
