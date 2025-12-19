@@ -78,8 +78,4 @@ module.exports = async (req, res) => {
     res.status(500).json({ error: err.message });
   });
 };
-```
 
-수정 후 테스트:
-```
-https://naver-search-api-orcin.vercel.app/api/crawl?keyword=광주선불폰
