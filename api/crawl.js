@@ -18,13 +18,13 @@ module.exports = async (req, res) => {
     let url;
     if (target === 'cafearticle') {
       // 카페 탭
-      url = `https://search.naver.com/search.naver?ssc=tab.cafe.all&query=${encodeURIComponent(keyword)}`;
+      url = `https://search.naver.com/search.naver?where=cafearticle&sm=tab_opt&query=${encodeURIComponent(keyword)}`;
     } else if (target === 'blog') {
-      // 블로그 탭
-      url = `https://search.naver.com/search.naver?ssc=tab.blog.all&query=${encodeURIComponent(keyword)}`;
+      // 블로그 탭  
+      url = `https://search.naver.com/search.naver?where=blog&sm=tab_opt&query=${encodeURIComponent(keyword)}`;
     } else {
-      // 통합검색 (VIEW)
-      url = `https://search.naver.com/search.naver?ssc=tab.view.all&query=${encodeURIComponent(keyword)}`;
+      // 통합검색
+      url = `https://search.naver.com/search.naver?where=nexearch&query=${encodeURIComponent(keyword)}`;
     }
     
     const html = await fetchPage(url);
@@ -37,7 +37,7 @@ module.exports = async (req, res) => {
     
     res.status(200).json({
       keyword: keyword,
-      target: target || 'view',
+      target: target || 'nexearch',
       total: titles.length,
       items: titles
     });
@@ -72,7 +72,8 @@ function parseSearchResults(html) {
     /class="total_tit"[^>]*>([^<]+)</gi,
     /title_link[^>]*title="([^"]+)"/gi,
     /"title":"([^"]{5,100})"/g,
-    /class="name_link"[^>]*>([^<]+)</gi
+    /class="link_tit"[^>]*>([^<]+)</gi,
+    /class="sub_tit"[^>]*>([^<]+)</gi
   ];
   
   for (const pattern of patterns) {
@@ -80,7 +81,7 @@ function parseSearchResults(html) {
     while ((match = pattern.exec(html)) !== null) {
       let title = match[1].trim();
       title = title.replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"');
-      if (title && title.length > 3 && !results.some(r => r.title === title)) {
+      if (title && title.length > 5 && !results.some(r => r.title === title)) {
         results.push({ rank: results.length + 1, title: title });
       }
       if (results.length >= 50) break;
